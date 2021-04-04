@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<style>
+#customers {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#customers td, #customers th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+#customers tr:nth-child(even){background-color: #f2f2f2;}
+
+#customers tr:hover {background-color: #ddd;}
+
+#customers th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #4CAF50;
+  color: white;
+}
+</style>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href='/static/style.css')>
+</head>
+<body>
+
+<!--<br><br><br><br><br>-->
+
+Upload Resume
+<form id="myForm" method=post enctype=multipart/form-data action="/upload" >
+    <input type=file name=the_file>
+    <input type=submit value=Upload>
+</form>
+<br>
+<br>
+<div>
+    Enter Role:
+    <div>
+    <input type="text" id="txt_search" name="txt_search">
+        <button id="analyze" onclick="analyze()">Analyze</button>
+    <ul id="searchResult"></ul>
+    </div>
+</div>
+
+
+<div class="clear"></div>
+<div id="userDetail"></div>
+<br>
+<div id="customers">
+
+</div>
+
+
+<script>
+$("#myForm").submit(function(e)
+{
+    var formData = new FormData(this);
+    $.post($(this).attr("action"), formData, function(response) {
+        alert("success")
+        e.preventDefault();
+    });
+    return false;
+});
+  $(document).ready(function(){
+
+    $("#txt_search").keyup(function(){
+        var search = $(this).val();
+        if(search != ""){
+            $.ajax({
+                url: '/autocomplete',
+                type: 'post',
+                data: {search:search},
+                dataType: 'json',
+                success:function(response){
+                    var len = response.length;
+                    $("#searchResult").empty();
+                    for( var i = 0; i<len; i++){
+                        var id = response[i];
+                        $("#searchResult").append("<li value='"+id+"'>"+id.charAt(0).toUpperCase() + id.slice(1)+"</li>");
+                    }
+                    // binding click event to li
+                    $("#searchResult li").bind("click",function(){
+                        setText(this);
+                    });
+                }
+            });
+        }
+    });
+});
+
+function analyze(element){
+    var value = $("#txt_search").val();
+    if(value){
+            $.ajax({
+                url: '/analyze',
+                type: 'post',
+                data: { role: value },
+                dataType: 'json',
+                success:function(response){
+                    debugger;
+                    var table = "<table><tr><th>Role</th><th>Matching Skills</th><th>Missing Skills</th><th>Percentage match</th></tr>";
+                    var len = response.length;
+                    for( var i = 0; i<len; i++){
+                        table += "<tr><td>"+response[i]['role']['title']+"</td><td>"+response[i]['matching_skills'].join(", ") + "</td><td>"+response[i]['missing_skills'].join(", ") + "</td><td>"+response[i]['percentage_match'].toFixed(2)+"</td></tr>";
+                    }
+                    table += "</table>";
+                    document.getElementById("customers").innerHTML = table;
+                }
+            });
+    }
+    else{
+        alert("please select Role");
+    }
+}
+
+// Set Text to search box and get details
+function setText(element){
+    var value = $(element).text();
+    var userid = $(element).val();
+    $("#txt_search").val(value);
+    $("#searchResult").empty();
+}
+
+</script>
+</body>
+</html>
